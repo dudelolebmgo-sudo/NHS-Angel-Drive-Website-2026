@@ -1,0 +1,155 @@
+{
+  "driveName": "Christmas Angel Drive",
+  "organization": "National Honor Society",
+  "year": 2026,
+  "goal": 1200,
+  "endDate": "2026-12-11",
+  "sample": true,
+  "classes": [
+    {
+      "id": "n-1",
+      "grade": "Nursery",
+      "section": "1"
+    },
+    {
+      "id": "n-2",
+      "grade": "Nursery",
+      "section": "2"
+    },
+    {
+      "id": "jk-1",
+      "grade": "Junior Kinder",
+      "section": "1"
+    },
+    {
+      "id": "jk-2",
+      "grade": "Junior Kinder",
+      "section": "2"
+    },
+    {
+      "id": "k-1",
+      "grade": "Kinder",
+      "section": "1"
+    },
+    {
+      "id": "k-2",
+      "grade": "Kinder",
+      "section": "2"
+    },
+    {
+      "id": "g1-1",
+      "grade": "1",
+      "section": "1"
+    },
+    {
+      "id": "g1-2",
+      "grade": "1",
+      "section": "2"
+    },
+    {
+      "id": "g2-1",
+      "grade": "2",
+      "section": "1"
+    },
+    {
+      "id": "g2-2",
+      "grade": "2",
+      "section": "2"
+    },
+    {
+      "id": "g3-1",
+      "grade": "3",
+      "section": "1"
+    },
+    {
+      "id": "g3-2",
+      "grade": "3",
+      "section": "2"
+    },
+    {
+      "id": "g4-1",
+      "grade": "4",
+      "section": "1"
+    },
+    {
+      "id": "g4-2",
+      "grade": "4",
+      "section": "2"
+    },
+    {
+      "id": "g5-1",
+      "grade": "5",
+      "section": "1"
+    },
+    {
+      "id": "g5-2",
+      "grade": "5",
+      "section": "2"
+    }
+  ],
+  "meetings": [
+    {
+      "date": "2026-10-07",
+      "added": {
+        "n-1": 11,
+        "n-2": 26,
+        "jk-1": 11,
+        "jk-2": 18,
+        "k-1": 24,
+        "k-2": 22,
+        "g1-1": 6,
+        "g1-2": 9,
+        "g2-1": 20,
+        "g2-2": 6,
+        "g3-1": 26,
+        "g3-2": 24,
+        "g4-1": 21,
+        "g4-2": 10,
+        "g5-1": 25,
+        "g5-2": 18
+      }
+    },
+    {
+      "date": "2026-10-14",
+      "added": {
+        "n-1": 12,
+        "n-2": 18,
+        "jk-1": 11,
+        "jk-2": 5,
+        "k-1": 26,
+        "k-2": 12,
+        "g1-1": 9,
+        "g1-2": 9,
+        "g2-1": 11,
+        "g2-2": 24,
+        "g3-1": 20,
+        "g3-2": 17,
+        "g4-1": 16,
+        "g4-2": 12,
+        "g5-1": 23,
+        "g5-2": 5
+      }
+    },
+    {
+      "date": "2026-10-21",
+      "added": {
+        "n-1": 5,
+        "n-2": 14,
+        "jk-1": 22,
+        "jk-2": 22,
+        "k-1": 8,
+        "k-2": 21,
+        "g1-1": 6,
+        "g1-2": 25,
+        "g2-1": 5,
+        "g2-2": 19,
+        "g3-1": 24,
+        "g3-2": 26,
+        "g4-1": 22,
+        "g4-2": 15,
+        "g5-1": 15,
+        "g5-2": 26
+      }
+    }
+  ]
+}

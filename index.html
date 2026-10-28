@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Christmas Angel Drive</title>
+  <meta name="description" content="Live class standings for the National Honor Society Christmas Angel Drive.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Gloock&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23103327'/%3E%3Cpath d='M16 5l3 7h7l-5.5 4.5 2 7.5L16 19.5 9.5 24l2-7.5L6 12h7z' fill='%23d8b24a'/%3E%3C/svg%3E">
+</head>
+<body>
+  <div class="sample-banner" id="sample-banner" hidden>
+    <div class="wrap"><p>These are sample numbers. Real totals appear after the first meeting is published from the editor.</p></div>
+  </div>
+
+  <header class="hero">
+    <div class="wrap">
+      <p class="org" id="org">National Honor Society</p>
+      <h1 id="title">Christmas Angel Drive 2026</h1>
+
+      <div class="hero-grid">
+        <div>
+          <div class="total-num" id="total">0</div>
+          <div class="total-label">gifts and items donated so far</div>
+        </div>
+        <div class="hero-facts">
+          <div class="fact"><b id="fact-classes">–</b><span>classes giving</span></div>
+          <div class="fact"><b id="fact-last">–</b><span>added at the last meeting</span></div>
+          <div class="fact" id="fact-days-wrap"><b id="fact-days">–</b><span id="fact-days-label">days left</span></div>
+        </div>
+      </div>
+
+      <div class="ribbon" id="ribbon">
+        <div class="ribbon-track" role="progressbar" aria-label="Progress toward goal" aria-valuemin="0" id="ribbon-track">
+          <div class="ribbon-fill" id="ribbon-fill"></div>
+          <svg class="bow" id="bow" viewBox="0 0 44 34" aria-hidden="true">
+            <path d="M22 17 C14 4, 2 4, 4 14 C5 22, 16 21, 22 17Z" fill="#c63a52"/>
+            <path d="M22 17 C30 4, 42 4, 40 14 C39 22, 28 21, 22 17Z" fill="#c63a52"/>
+            <path d="M20 18 L13 32 L18 30 L21 33 Z M24 18 L31 32 L26 30 L23 33 Z" fill="#a6243b"/>
+            <circle cx="22" cy="17" r="4.5" fill="#d8b24a"/>
+          </svg>
+        </div>
+        <div class="ribbon-caption"><span id="goal-pct"></span><span id="goal-text"></span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section aria-labelledby="standings-h">
+      <div class="section-head">
+        <div>
+          <h2 id="standings-h">Class standings</h2>
+          <p class="section-note">Every class is a tag on the tree. Ranked by total items donated.</p>
+        </div>
+        <div class="controls" id="grade-filter" role="group" aria-label="Show grade"></div>
+      </div>
+      <ol class="tags" id="tags"></ol>
+    </section>
+
+    <section aria-labelledby="grades-h">
+      <div class="section-head">
+        <div>
+          <h2 id="grades-h">By grade</h2>
+          <p class="section-note">Each bar is split into its sections.</p>
+        </div>
+      </div>
+      <ul class="grades" id="grades"></ul>
+    </section>
+
+    <section aria-labelledby="history-h">
+      <div class="section-head">
+        <div>
+          <h2 id="history-h">Meeting by meeting</h2>
+          <p class="section-note">Running total after each NHS meeting.</p>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div id="chart"></div>
+        <ul class="meeting-list" id="meeting-list"></ul>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span id="updated">Not updated yet</span>
+      <a href="edit.html">Editor</a>
+    </div>
+  </footer>
+
+  <script src="common.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
