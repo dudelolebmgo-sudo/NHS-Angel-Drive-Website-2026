@@ -1,6 +1,6 @@
 # Christmas Angel Drive 2026
 
-This is the website our National Honor Society chapter uses to keep score during the Christmas Angel Drive. Every class from Nursery to Grade 5 collects items, and this page shows how many each class has brought in so far, who's in the lead, and how close we are to our goal.
+This is the website our National Honor Society organization in CIC Valencia uses to keep score during the Christmas Angel Drive. Every class from Nursery to Grade 5 collects items, and this page shows how many each class has brought in so far, who's in the lead, and how close we are to our goal.
 
 **See it here:** https://dudelolebmgo-sudo.github.io/NHS-Angel-Drive-Website-2026/
 
