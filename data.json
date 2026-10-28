@@ -7,14 +7,9 @@
   "sample": false,
   "classes": [
     {
-      "id": "n-1",
-      "grade": "Nursery",
-      "section": "1"
-    },
-    {
       "id": "n-2",
       "grade": "Nursery",
-      "section": "2"
+      "section": "."
     },
     {
       "id": "jk-1",
