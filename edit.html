@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Gloock&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261028b">
+  <link rel="stylesheet" href="styles.css?v=20261028c">
   <style>
     .ed-head { background: var(--pine); color: var(--snow); padding: 28px 0; }
     .ed-head .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
@@ -54,45 +54,80 @@
       .grade-table .classes-out { display: none; }
       .grade-table select { min-width: 0; width: 100%; }
     }
+    .lock { max-width: 460px; margin: 48px auto 0; }
+    .lock .panel { padding: 28px; }
+    .lock h2 { margin-bottom: 6px; }
+    .lock .f { margin-top: 14px; }
+    .lock input { width: 100%; }
+    .pin-input { font-size: 28px; letter-spacing: .4em; text-align: center; padding: 10px; }
+    .lock .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-top: 20px; }
+    .linkish { background: none; border: 0; padding: 0; font: inherit; font-size: 15px; color: var(--pine); text-decoration: underline; cursor: pointer; }
+    .ed-head .who { font-size: 14px; color: #b9cdc4; }
+    .ed-head .head-actions { display: flex; gap: 16px; align-items: center; }
+    .ed-head .btn { background: transparent; color: var(--snow); border-color: #6f9183; }
   </style>
 </head>
 <body>
   <header class="ed-head">
     <div class="wrap">
       <h1>Drive editor</h1>
-      <a href="./">View the public page</a>
+      <div class="head-actions">
+        <a href="./">View the public page</a>
+        <button class="btn small" id="lock-btn" type="button" hidden>Lock</button>
+      </div>
     </div>
   </header>
 
-  <main class="wrap">
+  <!-- Lock screen: shown until the PIN (or, on a new device, the token) is entered -->
+  <div class="wrap lock" id="lock">
 
-    <section class="panel" aria-labelledby="conn-h">
-      <h2 id="conn-h">1. Connect to GitHub</h2>
-      <p class="hint">Publishing saves <code>data.json</code> to the repository, and GitHub Pages updates the site within a minute or two. The token stays in this browser only.</p>
-      <div class="row">
-        <label class="f grow">Repository (owner/name)<input id="repo" placeholder="owner/repository" autocomplete="off"></label>
-        <label class="f">Branch<input id="branch" value="main" size="8"></label>
-        <label class="f grow">Access token<input id="token" type="password" placeholder="github_pat_…" autocomplete="off"></label>
+    <form class="panel" id="unlock-form" hidden autocomplete="off">
+      <h2>Enter your PIN</h2>
+      <p class="hint">The editor is locked.</p>
+      <label class="f">PIN<input id="pin" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" aria-label="PIN"></label>
+      <div class="actions">
+        <button class="linkish" id="forgot-pin" type="button">Forgot PIN?</button>
+        <button class="btn primary" type="submit">Unlock</button>
       </div>
-      <div class="row" style="margin-top:14px">
-        <label style="display:flex;gap:8px;align-items:center;font-size:15px"><input type="checkbox" id="remember" checked> Remember on this device</label>
-        <button class="btn" id="load-btn" type="button">Load latest data</button>
-        <button class="btn small" id="forget-btn" type="button">Forget token</button>
-      </div>
-      <details style="margin-top:14px">
-        <summary>How to get a token (one time, about 2 minutes)</summary>
+      <div class="status" id="unlock-status" role="status"></div>
+    </form>
+
+    <form class="panel" id="setup-form" hidden autocomplete="off">
+      <h2>Set up this device</h2>
+      <p class="hint">Only people with the drive's GitHub token can open the editor. Paste it once, then choose a PIN you'll use to unlock the editor on this device.</p>
+      <label class="f">GitHub token<input id="token" type="password" placeholder="github_pat_…" autocomplete="off"></label>
+      <label class="f">Choose a PIN (4–8 digits)<input id="new-pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="new-password"></label>
+      <label class="f">Type the PIN again<input id="new-pin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="new-password"></label>
+      <details style="margin-top:16px">
+        <summary>How to get a token</summary>
         <ol>
           <li>On GitHub, open Settings, then Developer settings, then Personal access tokens, then <b>Fine-grained tokens</b>, and choose Generate new token.</li>
           <li>Under Repository access, pick <b>Only select repositories</b> and choose this site's repository.</li>
-          <li>Under Repository permissions, set <b>Contents</b> to Read and write. Leave everything else alone.</li>
+          <li>Under Repository permissions, set <b>Contents</b> to Read and write.</li>
           <li>Set the expiration to after the drive ends, generate it, and paste it above.</li>
         </ol>
       </details>
-      <div class="status" id="conn-status" role="status"></div>
-    </section>
+      <details style="margin-top:10px">
+        <summary>Repository settings</summary>
+        <div class="row" style="margin-top:10px">
+          <label class="f grow">Repository (owner/name)<input id="repo" placeholder="owner/repository" autocomplete="off"></label>
+          <label class="f">Branch<input id="branch" value="main" size="8"></label>
+        </div>
+      </details>
+      <div class="actions">
+        <span></span>
+        <button class="btn primary" type="submit">Unlock editor</button>
+      </div>
+      <div class="status" id="setup-status" role="status"></div>
+    </form>
+  </div>
+
+  <div id="editor" hidden>
+  <main class="wrap">
+    <div class="status" id="conn-status" role="status" style="margin-top:24px"></div>
 
     <section class="panel" aria-labelledby="meet-h">
-      <h2 id="meet-h">2. Enter this meeting's donations</h2>
+      <h2 id="meet-h">1. Enter this meeting's donations</h2>
       <p class="hint">Type how many items each class brought in since the last meeting. Leave a class blank if it brought nothing. To fix a past meeting, choose it from the list.</p>
       <div class="row">
         <label class="f">Meeting<select id="meeting-pick"></select></label>
@@ -109,7 +144,7 @@
     </section>
 
     <section class="panel" aria-labelledby="cls-h">
-      <h2 id="cls-h">3. Classes</h2>
+      <h2 id="cls-h">2. Classes</h2>
       <p class="hint">Choose how many sections each grade has. Lowering the number removes the last section and its counts.</p>
       <div class="table-scroll">
         <table class="grade-table">
@@ -120,7 +155,7 @@
     </section>
 
     <section class="panel" aria-labelledby="set-h">
-      <h2 id="set-h">4. Drive settings</h2>
+      <h2 id="set-h">3. Drive settings</h2>
       <div class="row">
         <label class="f grow">Drive name<input id="s-name"></label>
         <label class="f grow">Organization<input id="s-org"></label>
@@ -147,8 +182,9 @@
     </div>
     <div class="wrap"><div class="status" id="pub-status" role="status" style="flex:1"></div></div>
   </div>
+  </div>
 
-  <script src="common.js?v=20261028b"></script>
-  <script src="edit.js?v=20261028b"></script>
+  <script src="common.js?v=20261028c"></script>
+  <script src="edit.js?v=20261028c"></script>
 </body>
 </html>

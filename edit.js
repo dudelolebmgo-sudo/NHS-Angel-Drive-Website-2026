@@ -1,36 +1,38 @@
 (function () {
   const $ = id => document.getElementById(id);
-  if (!$("grade-body")) {
+  if (!$("lock") || !$("grade-body")) {
     // An older cached copy of edit.html is paired with this newer script.
-    document.querySelector("main").insertAdjacentHTML("afterbegin",
-      '<div class="status show err" style="margin-top:24px">This page is still updating. Wait a few minutes, then reload. Don\'t publish until the Classes section shows a Sections dropdown for each grade.</div>');
+    document.body.insertAdjacentHTML("afterbegin",
+      '<div class="wrap"><div class="status show err" style="margin-top:24px">This page is still updating. Wait a few minutes, then reload.</div></div>');
     document.querySelectorAll("button").forEach(b => (b.disabled = true));
     return;
   }
-  const LS = { repo: "angel.repo", branch: "angel.branch", token: "angel.token" };
+  const LS = { repo: "angel.repo", branch: "angel.branch", vault: "angel.vault", oldToken: "angel.token" };
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
     del(k) { try { localStorage.removeItem(k); } catch (e) {} }
   };
 
+  let token = "";       // kept in memory only while unlocked
   let data = null;      // working copy
   let sha = null;       // sha of data.json on GitHub, needed to update it
   let current = -1;     // index into data.meetings, or -1 for a new meeting
   let draft = null;     // the new meeting being entered
   let dirty = false;
 
-  // ---------- Setup ----------
+  // ---------- Repository ----------
   $("repo").value = store.get(LS.repo) || guessRepo();
   $("branch").value = store.get(LS.branch) || "main";
-  $("token").value = store.get(LS.token) || "";
+  const repo = () => (store.get(LS.repo) || $("repo").value).trim();
+  const branch = () => (store.get(LS.branch) || $("branch").value || "main").trim();
 
   function guessRepo() {
     const h = location.hostname;
     if (h.endsWith(".github.io")) {
       const owner = h.replace(".github.io", "");
-      const repo = location.pathname.split("/").filter(Boolean)[0];
-      return repo && !repo.endsWith(".html") ? `${owner}/${repo}` : `${owner}/${h}`;
+      const r = location.pathname.split("/").filter(Boolean)[0];
+      return r && !r.endsWith(".html") ? `${owner}/${r}` : `${owner}/${h}`;
     }
     return "dudelolebmgo-sudo/NHS-Angel-Drive-Website-2026";
   }
@@ -49,6 +51,7 @@
     s.className = "status show " + kind;
     s.textContent = msg;
   }
+  function clearStatus(el) { $(el).className = "status"; $(el).textContent = ""; }
 
   function markDirty(v = true) {
     dirty = v;
@@ -59,52 +62,141 @@
     if (dirty) { e.preventDefault(); e.returnValue = ""; }
   });
 
-  function saveConn() {
-    if ($("remember").checked) {
-      store.set(LS.repo, $("repo").value.trim());
-      store.set(LS.branch, $("branch").value.trim());
-      if ($("token").value.trim()) store.set(LS.token, $("token").value.trim());
-    }
+  // ---------- PIN vault ----------
+  // The token is saved on this device encrypted with a key made from the PIN,
+  // so the PIN is needed to use it. Nothing about the PIN is stored anywhere else.
+  const enc = new TextEncoder(), dec = new TextDecoder();
+  const toB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+  const fromB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+
+  async function keyFromPin(pin, salt) {
+    const base = await crypto.subtle.importKey("raw", enc.encode(pin), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: 310000, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
   }
+
+  async function lockToken(tok, pin) {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await keyFromPin(pin, salt), enc.encode(tok));
+    store.set(LS.vault, JSON.stringify({ salt: toB64(salt), iv: toB64(iv), ct: toB64(ct) }));
+  }
+
+  async function unlockToken(pin) {
+    const v = JSON.parse(store.get(LS.vault));
+    const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: fromB64(v.iv) }, await keyFromPin(pin, fromB64(v.salt)), fromB64(v.ct));
+    return dec.decode(pt);
+  }
+
+  // ---------- Lock screen ----------
+  let fails = 0, waitUntil = 0;
+
+  function showLock() {
+    const hasVault = !!store.get(LS.vault);
+    $("editor").hidden = true;
+    $("lock-btn").hidden = true;
+    $("lock").hidden = false;
+    $("unlock-form").hidden = !hasVault;
+    $("setup-form").hidden = hasVault;
+    store.del(LS.oldToken); // the earlier editor saved the token unencrypted; remove that copy
+    setTimeout(() => (hasVault ? $("pin") : $("token")).focus(), 0);
+  }
+
+  function showEditor() {
+    $("lock").hidden = true;
+    $("editor").hidden = false;
+    $("lock-btn").hidden = false;
+  }
+
+  $("unlock-form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const now = Date.now();
+    if (now < waitUntil) { status("unlock-status", "err", `Too many tries. Wait ${Math.ceil((waitUntil - now) / 1000)} seconds.`); return; }
+    const pin = $("pin").value.trim();
+    if (!pin) return;
+    status("unlock-status", "info", "Unlocking…");
+    try {
+      token = await unlockToken(pin);
+    } catch (err) {
+      fails++;
+      $("pin").value = "";
+      if (fails >= 5) { waitUntil = Date.now() + 30000; fails = 0; status("unlock-status", "err", "Wrong PIN. Too many tries, so wait 30 seconds."); }
+      else status("unlock-status", "err", "Wrong PIN. Try again.");
+      return;
+    }
+    fails = 0;
+    $("pin").value = "";
+    clearStatus("unlock-status");
+    showEditor();
+    load();
+  });
+
+  $("forgot-pin").addEventListener("click", () => {
+    if (!confirm("This removes the saved token from this device. You'll need to paste the GitHub token again and choose a new PIN. Continue?")) return;
+    store.del(LS.vault);
+    showLock();
+  });
+
+  $("setup-form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const tok = $("token").value.trim(), p1 = $("new-pin").value.trim(), p2 = $("new-pin2").value.trim();
+    if (!tok) { status("setup-status", "err", "Paste the GitHub token first."); $("token").focus(); return; }
+    if (!/^\d{4,8}$/.test(p1)) { status("setup-status", "err", "The PIN must be 4 to 8 digits."); $("new-pin").focus(); return; }
+    if (p1 !== p2) { status("setup-status", "err", "The two PINs don't match."); $("new-pin2").value = ""; $("new-pin2").focus(); return; }
+    store.set(LS.repo, $("repo").value.trim());
+    store.set(LS.branch, $("branch").value.trim() || "main");
+    status("setup-status", "info", "Checking the token with GitHub…");
+    token = tok;
+    try {
+      const res = await api("/contents/data.json?ref=" + encodeURIComponent(branch()));
+      if (res.status === 401) throw new Error("GitHub didn't accept that token. Check that it's pasted correctly and hasn't expired.");
+      if (res.status === 403 || res.status === 404) throw new Error("That token can't reach this site's repository. Make sure it was created for " + repo() + ".");
+      if (!res.ok) throw new Error("GitHub returned an error (" + res.status + "). Try again in a moment.");
+    } catch (err) {
+      token = "";
+      status("setup-status", "err", err.message || "Couldn't reach GitHub. Check your connection.");
+      return;
+    }
+    await lockToken(tok, p1);
+    ["token", "new-pin", "new-pin2"].forEach(id => ($(id).value = ""));
+    clearStatus("setup-status");
+    showEditor();
+    load();
+  });
+
+  $("lock-btn").addEventListener("click", () => {
+    if (dirty && !confirm("Locking will discard your unpublished changes. Continue?")) return;
+    token = "";
+    data = null;
+    markDirty(false);
+    clearStatus("pub-status");
+    showLock();
+  });
 
   // ---------- GitHub API ----------
   function api(path, opts = {}) {
-    const token = $("token").value.trim();
-    const headers = { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
-    if (token) headers.Authorization = "Bearer " + token;
-    return fetch("https://api.github.com/repos/" + $("repo").value.trim() + path, { ...opts, headers: { ...headers, ...(opts.headers || {}) } });
+    const headers = { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", Authorization: "Bearer " + token };
+    return fetch("https://api.github.com/repos/" + repo() + path, { ...opts, cache: "no-store", headers: { ...headers, ...(opts.headers || {}) } });
   }
 
   const b64encode = str => {
-    const bytes = new TextEncoder().encode(str);
+    const bytes = enc.encode(str);
     let bin = "";
     bytes.forEach(b => (bin += String.fromCharCode(b)));
     return btoa(bin);
   };
-  const b64decode = b64 => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\s/g, "")), c => c.charCodeAt(0)));
+  const b64decode = b64 => dec.decode(Uint8Array.from(atob(b64.replace(/\s/g, "")), c => c.charCodeAt(0)));
 
   async function load() {
-    if (dirty && !confirm("Loading will discard your unpublished changes. Continue?")) return;
-    saveConn();
-    const token = $("token").value.trim();
+    clearStatus("conn-status");
     try {
-      if (token) {
-        const res = await api("/contents/data.json?ref=" + encodeURIComponent($("branch").value.trim()));
-        if (res.status === 401) throw new Error("GitHub rejected the token. Check that it's pasted correctly and hasn't expired.");
-        if (res.status === 404) throw new Error("Couldn't find data.json in that repository and branch. Check the repository name, the branch, and that the token has access to this repository.");
-        if (!res.ok) throw new Error("GitHub returned an error (" + res.status + ").");
-        const j = await res.json();
-        sha = j.sha;
-        data = JSON.parse(b64decode(j.content));
-        status("conn-status", "ok", "Connected. Loaded the latest data from GitHub.");
-      } else {
-        const res = await fetch("data.json?v=" + Date.now(), { cache: "no-store" });
-        data = await res.json();
-        sha = null;
-        status("conn-status", "info", "Loaded the data shown on the site. Add a token to publish changes, or use Download data.json.");
-      }
+      const res = await api("/contents/data.json?ref=" + encodeURIComponent(branch()));
+      if (res.status === 401) throw new Error("GitHub no longer accepts the saved token. It may have expired. Lock the editor, choose Forgot PIN, and set it up with a new token.");
+      if (!res.ok) throw new Error("Couldn't load the data from GitHub (error " + res.status + "). Reload the page to try again.");
+      const j = await res.json();
+      sha = j.sha;
+      data = JSON.parse(b64decode(j.content));
     } catch (e) {
-      status("conn-status", "err", e.message || "Couldn't load the data.");
+      status("conn-status", "err", e.message || "Couldn't load the data. Check your connection and reload.");
       if (!data) { data = { driveName: "Christmas Angel Drive", year: new Date().getFullYear(), goal: 0, classes: [], meetings: [] }; }
     }
     data.classes = data.classes || [];
@@ -164,7 +256,7 @@
     const before = beforeTotals();
     const classes = [...data.classes].sort(Drive.compareClasses);
     if (!classes.length) {
-      $("entry-body").innerHTML = '<tr><td colspan="4" style="color:var(--muted)">No classes yet. Add them in step 3.</td></tr>';
+      $("entry-body").innerHTML = '<tr><td colspan="4" style="color:var(--muted)">No classes yet. Set sections in step 2.</td></tr>';
     } else {
       $("entry-body").innerHTML = classes.map(c => {
         const v = m.added[c.id];
@@ -368,28 +460,26 @@
   });
 
   $("publish").addEventListener("click", async () => {
-    const token = $("token").value.trim();
-    if (!token) { status("pub-status", "err", "Add an access token in step 1 to publish, or use Download data.json."); return; }
+    if (!token) { showLock(); return; }
     if (current === -1 && draft.date && data.meetings.some(m => m.date === draft.date)) {
       status("pub-status", "err", "There's already a meeting on " + Drive.fmtDate(draft.date) + ". Choose it from the Meeting list to edit it instead.");
       return;
     }
-    saveConn();
     const out = buildOutput();
     $("publish").disabled = true;
     status("pub-status", "info", "Publishing…");
     try {
       if (!sha) {
-        const r = await api("/contents/data.json?ref=" + encodeURIComponent($("branch").value.trim()));
+        const r = await api("/contents/data.json?ref=" + encodeURIComponent(branch()));
         if (r.ok) sha = (await r.json()).sha;
       }
       const label = current === -1 && Object.keys(draft.added).length ? "Add " + draft.date + " meeting" : "Update drive data";
       const res = await api("/contents/data.json", {
         method: "PUT",
-        body: JSON.stringify({ message: label, content: b64encode(JSON.stringify(out, null, 2) + "\n"), sha: sha || undefined, branch: $("branch").value.trim() })
+        body: JSON.stringify({ message: label, content: b64encode(JSON.stringify(out, null, 2) + "\n"), sha: sha || undefined, branch: branch() })
       });
-      if (res.status === 409 || res.status === 422) throw new Error("Someone else published since you loaded. Copy your numbers, choose Load latest data, and enter them again.");
-      if (res.status === 401) throw new Error("GitHub rejected the token. Check that it's pasted correctly and hasn't expired.");
+      if (res.status === 409 || res.status === 422) throw new Error("The data changed on GitHub since this page loaded (maybe from another device). Note your numbers, reload the page, and enter them again.");
+      if (res.status === 401) throw new Error("GitHub no longer accepts the saved token. It may have expired. Lock the editor, choose Forgot PIN, and set it up with a new token.");
       if (res.status === 403 || res.status === 404) throw new Error("This token can't write to the repository. Make sure Contents is set to Read and write for this repository.");
       if (!res.ok) throw new Error("GitHub returned an error (" + res.status + ").");
       sha = (await res.json()).content.sha;
@@ -408,13 +498,6 @@
   });
 
   // ---------- Init ----------
-  $("load-btn").addEventListener("click", load);
-  $("forget-btn").addEventListener("click", () => {
-    store.del(LS.token);
-    $("token").value = "";
-    status("conn-status", "info", "Token removed from this device.");
-  });
-
   function renderAll() {
     renderMeetingPick();
     renderEntry();
@@ -426,5 +509,5 @@
     return String(s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
   }
 
-  load();
+  showLock();
 })();
