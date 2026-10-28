@@ -227,66 +227,70 @@
   });
 
   // ---------- Classes ----------
+  // Every grade at the school, in order. Each gets a "Sections" dropdown.
+  const SCHOOL_GRADES = ["Nursery", "Junior Kinder", "Kinder", "1", "2", "3", "4", "5"];
+  const SECTION_CHOICES = [[0, "Not in the drive"], [1, "1 section"], [2, "2 sections"], [3, "3 sections"]];
+
+  function gradeList() {
+    const extra = data.classes.map(c => String(c.grade)).filter(g => !SCHOOL_GRADES.includes(g));
+    return [...SCHOOL_GRADES, ...new Set(extra)];
+  }
+
+  function classesIn(g) {
+    return data.classes.filter(c => String(c.grade) === g).sort(Drive.compareClasses);
+  }
+
+  function idFor(g, s) {
+    const short = { "Nursery": "n", "Junior Kinder": "jk", "Kinder": "k" }[g] || ("g" + g).toLowerCase().replace(/[^a-z0-9]+/g, "");
+    let id = `${short}-${s}`, n = 2;
+    while (data.classes.some(c => c.id === id)) id = `${short}-${s}-${n++}`;
+    return id;
+  }
+
+  function classTotal(id) {
+    return data.meetings.reduce((t, m) => t + (Number(m.added[id]) || 0), 0) + (Number(draft.added[id]) || 0);
+  }
+
   function renderClasses() {
-    const classes = [...data.classes].sort(Drive.compareClasses);
-    $("classes-list").innerHTML = classes.map(c => `<li data-id="${c.id}">
-      <label>Grade<input data-f="grade" value="${esc(c.grade)}"></label>
-      <label>Section<input data-f="section" value="${esc(c.section)}"></label>
-      <button class="btn small danger" type="button" data-remove>Remove</button>
-    </li>`).join("") || '<li style="color:var(--muted)">No classes yet.</li>';
+    $("grade-body").innerHTML = gradeList().map(g => {
+      const cs = classesIn(g);
+      const n = cs.length;
+      const choices = SECTION_CHOICES.some(([v]) => v === n) ? SECTION_CHOICES : [...SECTION_CHOICES, [n, n + " sections"]];
+      return `<tr data-grade="${esc(g)}">
+        <td><strong>${esc(Drive.gradeName(g))}</strong></td>
+        <td><select aria-label="Sections in ${esc(Drive.gradeName(g))}">${choices.map(([v, l]) => `<option value="${v}"${v === n ? " selected" : ""}>${l}</option>`).join("")}</select></td>
+        <td class="classes-out">${cs.length ? cs.map(c => esc(Drive.classLabel(c))).join(", ") : "Hidden"}</td>
+      </tr>`;
+    }).join("");
   }
 
-  $("classes-list").addEventListener("change", e => {
-    const input = e.target.closest("input[data-f]");
-    if (!input) return;
-    const c = data.classes.find(x => x.id === input.closest("li").dataset.id);
-    let v = input.value.trim();
-    if (!v) { input.value = c[input.dataset.f]; return; }
-    if (input.dataset.f === "grade") { v = Drive.normalizeGrade(v); input.value = v; }
-    c[input.dataset.f] = v;
-    renderEntry();
-    markDirty();
-  });
+  $("grade-body").addEventListener("change", e => {
+    const sel = e.target.closest("select");
+    if (!sel) return;
+    const g = sel.closest("tr").dataset.grade;
+    const want = Number(sel.value);
+    const cs = classesIn(g);
 
-  $("classes-list").addEventListener("click", e => {
-    if (!e.target.closest("[data-remove]")) return;
-    const id = e.target.closest("li").dataset.id;
-    const c = data.classes.find(x => x.id === id);
-    if (!confirm(`Remove ${Drive.classLabel(c)} and all of its counts?`)) return;
-    data.classes = data.classes.filter(x => x.id !== id);
-    data.meetings.forEach(m => delete m.added[id]);
-    delete draft.added[id];
-    renderClasses();
-    renderEntry();
-    markDirty();
-  });
-
-  function parseSections(s) {
-    s = s.trim();
-    const range = s.match(/^(\d+)\s*[-–]\s*(\d+)$/);
-    if (range) {
-      const a = +range[1], b = +range[2], out = [];
-      for (let i = Math.min(a, b); i <= Math.max(a, b) && out.length < 50; i++) out.push(String(i));
-      return out;
+    if (want < cs.length) {
+      const removing = cs.slice(want);
+      const withCounts = removing.filter(c => classTotal(c.id) > 0);
+      if (withCounts.length) {
+        const list = withCounts.map(c => `${Drive.classLabel(c)} (${Drive.fmt(classTotal(c.id))} items)`).join(", ");
+        if (!confirm(`This removes ${list} and deletes those counts. Continue?`)) { sel.value = String(cs.length); return; }
+      }
+      const ids = new Set(removing.map(c => c.id));
+      data.classes = data.classes.filter(c => !ids.has(c.id));
+      data.meetings.forEach(m => ids.forEach(id => delete m.added[id]));
+      ids.forEach(id => delete draft.added[id]);
+    } else {
+      const used = new Set(cs.map(c => String(c.section)));
+      let s = 1;
+      for (let k = cs.length; k < want; k++) {
+        while (used.has(String(s))) s++;
+        used.add(String(s));
+        data.classes.push({ id: idFor(g, String(s)), grade: g, section: String(s) });
+      }
     }
-    return s.split(/[,\s]+/).map(x => x.trim()).filter(Boolean);
-  }
-
-  $("add-class").addEventListener("click", () => {
-    const g = Drive.normalizeGrade($("new-grade").value);
-    const secs = parseSections($("new-sections").value || "1");
-    if (!g) { $("new-grade").focus(); return; }
-    let added = 0;
-    secs.forEach(s => {
-      if (data.classes.some(c => String(c.grade).toLowerCase() === g.toLowerCase() && String(c.section).toLowerCase() === s.toLowerCase())) return;
-      let id = Drive.slug(g, s), n = 2;
-      while (data.classes.some(c => c.id === id)) id = Drive.slug(g, s) + "-" + n++;
-      data.classes.push({ id, grade: g, section: s });
-      added++;
-    });
-    if (!added) { alert("Those classes are already on the list."); return; }
-    $("new-grade").value = "";
-    $("new-sections").value = "";
     renderClasses();
     renderEntry();
     markDirty();

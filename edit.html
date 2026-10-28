@@ -39,9 +39,9 @@
     .status.ok { background: #e3efe8; color: var(--pine); }
     .status.err { background: #f7e2e5; color: #7d1428; }
     .status.info { background: #f6efdc; color: #5a4512; }
-    .classes-list { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 8px; }
-    .classes-list li { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: center; }
-    .classes-list label { font-size: 13px; color: var(--muted); display: grid; gap: 2px; }
+    .grade-table td, .grade-table th { padding: 10px; }
+    .grade-table select { min-width: 170px; }
+    .grade-table .classes-out { color: var(--muted); font-size: 15px; }
     .publish-bar { position: sticky; bottom: 0; background: var(--snow); border-top: 1px solid var(--line); padding: 14px 0; margin-top: 32px; z-index: 5; }
     .publish-bar .wrap { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
     .dirty { color: var(--cranberry); font-size: 15px; }
@@ -51,8 +51,8 @@
     @media (max-width: 600px) {
       td.in { width: 100px; }
       th.before, td.before { display: none; }
-      .classes-list li { grid-template-columns: 1fr 1fr; }
-      .classes-list li .btn { grid-column: 1 / -1; justify-self: start; }
+      .grade-table .classes-out { display: none; }
+      .grade-table select { min-width: 0; width: 100%; }
     }
   </style>
 </head>
@@ -110,14 +110,13 @@
 
     <section class="panel" aria-labelledby="cls-h">
       <h2 id="cls-h">3. Classes</h2>
-      <p class="hint">Add or rename classes. Removing a class also removes its counts.</p>
-      <ul class="classes-list" id="classes-list"></ul>
-      <div class="row">
-        <label class="f">Grade<input id="new-grade" size="12" placeholder="3 or Kinder"></label>
-        <label class="f">Sections<input id="new-sections" size="8" placeholder="1-3"></label>
-        <button class="btn" id="add-class" type="button">Add classes</button>
+      <p class="hint">Choose how many sections each grade has. Lowering the number removes the last section and its counts.</p>
+      <div class="table-scroll">
+        <table class="grade-table">
+          <thead><tr><th>Grade</th><th>Sections</th><th class="classes-out">Shows on the site as</th></tr></thead>
+          <tbody id="grade-body"></tbody>
+        </table>
       </div>
-      <p class="hint" style="margin-top:8px">For grade, type a number (1–5) or Nursery, Junior Kinder, or Kinder. For sections, type one (2), a range (1-4), or a list (A, B, C).</p>
     </section>
 
     <section class="panel" aria-labelledby="set-h">
