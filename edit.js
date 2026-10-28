@@ -1,5 +1,12 @@
 (function () {
   const $ = id => document.getElementById(id);
+  if (!$("grade-body")) {
+    // An older cached copy of edit.html is paired with this newer script.
+    document.querySelector("main").insertAdjacentHTML("afterbegin",
+      '<div class="status show err" style="margin-top:24px">This page is still updating. Wait a few minutes, then reload. Don\'t publish until the Classes section shows a Sections dropdown for each grade.</div>');
+    document.querySelectorAll("button").forEach(b => (b.disabled = true));
+    return;
+  }
   const LS = { repo: "angel.repo", branch: "angel.branch", token: "angel.token" };
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
@@ -102,10 +109,24 @@
     }
     data.classes = data.classes || [];
     data.meetings = Drive.sortedMeetings(data);
+    const fixed = renumberSections();
     newDraft();
     current = -1;
     renderAll();
-    markDirty(false);
+    markDirty(fixed);
+    if (fixed) status("pub-status", "info", "Some section numbers were tidied up (for example Nursery-. is now Nursery-1). Publish to save the fix.");
+  }
+
+  // Sections are always numbered 1, 2, 3… within each grade.
+  function renumberSections() {
+    let changed = false;
+    const grades = [...new Set(data.classes.map(c => String(c.grade)))];
+    grades.forEach(g => {
+      data.classes.filter(c => String(c.grade) === g).sort(Drive.compareClasses).forEach((c, i) => {
+        if (String(c.section) !== String(i + 1)) { c.section = String(i + 1); changed = true; }
+      });
+    });
+    return changed;
   }
 
   function newDraft() {

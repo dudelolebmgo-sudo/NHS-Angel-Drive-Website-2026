@@ -113,7 +113,7 @@
       }
       return `<li class="tag${isTop ? " top" : ""}">
         <div class="tag-body">
-          <span class="tag-rank">#${c.rank}</span>
+          ${c.total > 0 ? `<span class="tag-rank">#${c.rank}</span>` : ""}
           ${isTop ? star(c.rank === 1 ? "gold" : "") : ""}
           <p class="tag-name"><strong>${esc(Drive.classLabel(c))}</strong></p>
           <div class="tag-count">${Drive.fmt(c.total)}</div>
