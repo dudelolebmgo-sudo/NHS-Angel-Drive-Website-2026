@@ -28,8 +28,12 @@
     return "dudelolebmgo-sudo/NHS-Angel-Drive-Website-2026";
   }
 
+  // Meetings are on Thursdays: default a new meeting to today if it's Thursday,
+  // otherwise the most recent Thursday.
+  const MEETING_WEEKDAY = 4; // 0 = Sunday … 4 = Thursday
   function todayISO() {
     const d = new Date();
+    d.setDate(d.getDate() - ((d.getDay() - MEETING_WEEKDAY + 7) % 7));
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
 
