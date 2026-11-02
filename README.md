@@ -24,7 +24,7 @@ You'll need a GitHub token, which is like a password that lets the editor save t
 
 After that, you only need your PIN on that device.
 
-### Every Thursday
+### Every Tuesday and Thursday
 
 1. Open the editor and type your PIN.
 2. The date fills in with the most recent Thursday. If you already saved numbers for that day, they open so you can keep adding to them.
