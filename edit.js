@@ -203,7 +203,8 @@
     data.meetings = Drive.sortedMeetings(data);
     const fixed = renumberSections();
     newDraft();
-    current = -1;
+    // If this Thursday's meeting was already saved, open it for editing.
+    current = data.meetings.findIndex(m => m.date === draft.date);
     renderAll();
     markDirty(fixed);
     if (fixed) status("pub-status", "info", "Some section numbers were tidied up (for example Nursery-. is now Nursery-1). Publish to save the fix.");
@@ -243,7 +244,7 @@
 
   function renderMeetingPick() {
     const opts = ['<option value="-1">New meeting</option>'].concat(
-      data.meetings.map((m, i) => `<option value="${i}">${Drive.fmtDate(m.date, { month: "long", day: "numeric", year: "numeric" })}</option>`).reverse()
+      data.meetings.map((m, i) => `<option value="${i}">${Drive.fmtDate(m.date, { weekday: "short", month: "long", day: "numeric" })} (saved)</option>`).reverse()
     );
     $("meeting-pick").innerHTML = opts.join("");
     $("meeting-pick").value = String(current);
@@ -259,12 +260,14 @@
       $("entry-body").innerHTML = '<tr><td colspan="4" style="color:var(--muted)">No classes yet. Set sections in step 2.</td></tr>';
     } else {
       $("entry-body").innerHTML = classes.map(c => {
-        const v = m.added[c.id];
+        const v = Number(m.added[c.id]) || 0;
+        const b = before[c.id] || 0;
+        const label = esc(Drive.classLabel(c));
         return `<tr data-id="${c.id}">
-          <td>${esc(Drive.classLabel(c))}</td>
-          <td class="num before">${Drive.fmt(before[c.id] || 0)}</td>
-          <td class="num in"><input type="number" min="0" step="1" inputmode="numeric" aria-label="Items from ${esc(Drive.classLabel(c))}" value="${v ? v : ""}"></td>
-          <td class="num after">${Drive.fmt((before[c.id] || 0) + (Number(v) || 0))}</td>
+          <td>${label}</td>
+          <td class="num before">${Drive.fmt(b)}</td>
+          <td class="num in"><input data-k="add" type="number" step="1" inputmode="numeric" aria-label="Items from ${label} this meeting" value="${v ? v : ""}"></td>
+          <td class="num in"><input data-k="total" type="number" min="0" step="1" inputmode="numeric" aria-label="Total for ${label}" value="${b + v}"></td>
         </tr>`;
       }).join("");
     }
@@ -277,7 +280,7 @@
     const b = Drive.sum(before);
     const a = data.classes.reduce((s, c) => s + (Number(m.added[c.id]) || 0), 0);
     $("sum-before").textContent = Drive.fmt(b);
-    $("sum-add").textContent = "+" + Drive.fmt(a);
+    $("sum-add").textContent = (a < 0 ? "−" : "+") + Drive.fmt(Math.abs(a));
     $("sum-after").textContent = Drive.fmt(b + a);
   }
 
@@ -287,9 +290,20 @@
     const tr = input.closest("tr");
     const id = tr.dataset.id;
     const m = activeMeeting();
-    const n = Math.max(0, Math.floor(Number(input.value) || 0));
-    if (n) m.added[id] = n; else delete m.added[id];
-    tr.querySelector(".after").textContent = Drive.fmt((beforeTotals()[id] || 0) + n);
+    const before = beforeTotals()[id] || 0;
+    let added;
+    if (input.dataset.k === "total") {
+      // Typing a total: this meeting's number becomes whatever makes the total right.
+      if (input.value === "") return;
+      const total = Math.max(0, Math.trunc(Number(input.value) || 0));
+      added = total - before;
+      tr.querySelector('[data-k="add"]').value = added ? added : "";
+    } else {
+      added = Math.trunc(Number(input.value) || 0);
+      if (before + added < 0) added = -before; // a total can't go below zero
+      tr.querySelector('[data-k="total"]').value = before + added;
+    }
+    if (added) m.added[id] = added; else delete m.added[id];
     updateSums();
     markDirty();
   });
@@ -297,7 +311,7 @@
   // Enter moves to the next class, which is quick during a meeting.
   $("entry-body").addEventListener("keydown", e => {
     if (e.key !== "Enter") return;
-    const inputs = [...$("entry-body").querySelectorAll("input")];
+    const inputs = [...$("entry-body").querySelectorAll(`input[data-k="${e.target.dataset.k}"]`)];
     const i = inputs.indexOf(e.target);
     if (i > -1 && inputs[i + 1]) { e.preventDefault(); inputs[i + 1].focus(); inputs[i + 1].select(); }
   });
@@ -446,6 +460,7 @@
     if (Object.keys(draft.added).length) out.meetings.push(JSON.parse(JSON.stringify(draft)));
     out.meetings = Drive.sortedMeetings(out);
     out.classes = [...out.classes].sort(Drive.compareClasses);
+    out.updatedAt = new Date().toISOString();
     return out;
   }
 
@@ -489,7 +504,7 @@
       newDraft();
       renderAll();
       markDirty(false);
-      status("pub-status", "ok", "Published. The public page will show the new numbers in a minute or two.");
+      status("pub-status", "ok", "Published. Refresh the public page and the new numbers should be there within a minute.");
     } catch (e) {
       status("pub-status", "err", e.message || "Publishing failed.");
     } finally {

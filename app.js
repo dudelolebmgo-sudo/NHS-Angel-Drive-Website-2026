@@ -3,14 +3,40 @@
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SECTION_COLORS = ["#103327", "#a6243b", "#c9a676", "#3f7a5f", "#d8b24a", "#6b4a2b", "#c63a52", "#24584a"];
 
-  let data;
-  try {
-    const res = await fetch("data.json?v=" + Date.now(), { cache: "no-store" });
-    data = await res.json();
-  } catch (e) {
+  // Numbers come straight from the repository, so they show up seconds after the
+  // editor publishes. GitHub allows about 60 of these reads per hour per network;
+  // past that (or if it's slow), the page uses the site's own copy, which catches up
+  // a minute or two after each publish.
+  function repoName() {
+    const h = location.hostname;
+    if (h.endsWith(".github.io")) {
+      const r = location.pathname.split("/").filter(Boolean)[0];
+      if (r && !r.endsWith(".html")) return `${h.replace(".github.io", "")}/${r}`;
+    }
+    return "dudelolebmgo-sudo/NHS-Angel-Drive-Website-2026";
+  }
+
+  function withTimeout(promise, ms) {
+    return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms))]);
+  }
+
+  const fromRepo = withTimeout(
+    fetch(`https://api.github.com/repos/${repoName()}/contents/data.json?ref=main`, { cache: "no-store", headers: { Accept: "application/vnd.github.raw+json" } })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error("github " + r.status)))),
+    5000
+  );
+  const fromSite = fetch("data.json?v=" + Date.now(), { cache: "no-store" }).then(r => (r.ok ? r.json() : Promise.reject(new Error("site " + r.status))));
+
+  const [repoRes, siteRes] = await Promise.allSettled([fromRepo, fromSite]);
+  const candidates = [repoRes, siteRes].filter(r => r.status === "fulfilled").map(r => r.value);
+  // Use whichever copy was published most recently.
+  candidates.sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+  const data = candidates[0];
+  if (!data) {
     $("tags").innerHTML = '<li class="empty">The standings could not be loaded. Refresh the page to try again.</li>';
     return;
   }
+  const signed = n => (n < 0 ? "−" : "+") + Drive.fmt(Math.abs(n));
 
   const classes = [...(data.classes || [])].sort(Drive.compareClasses);
   const meetings = Drive.sortedMeetings(data);
@@ -27,7 +53,7 @@
   $("sample-banner").hidden = !data.sample;
 
   $("fact-classes").textContent = classes.length;
-  $("fact-last").textContent = lastMeeting ? "+" + Drive.fmt(lastAdded) : "–";
+  $("fact-last").textContent = lastMeeting ? signed(lastAdded) : "–";
 
   if (data.endDate) {
     const [y, m, d] = data.endDate.split("-").map(Number);
@@ -120,7 +146,7 @@
           <span class="tag-unit">${c.total === 1 ? "item" : "items"}</span>
           <div class="tag-bar" aria-hidden="true"><i style="width:${w}%"></i></div>
           <div class="tag-delta">
-            <span>${lastMeeting ? `<span class="up">+${Drive.fmt(c.last)}</span> last time` : ""}</span>
+            <span>${lastMeeting ? `<span class="up">${signed(c.last)}</span> last time` : ""}</span>
             <span>${move}</span>
           </div>
         </div>
@@ -197,7 +223,7 @@
     const area = `${line} L${x(series.length - 1)},${y(0)} L${x(0)},${y(0)} Z`;
     const goalLine = goal ? `<line x1="${pl}" x2="${W - pr}" y1="${y(goal)}" y2="${y(goal)}" stroke="#a6243b" stroke-dasharray="5 5"/><text x="${W - pr}" y="${y(goal) - 6}" text-anchor="end" style="fill:#a6243b">Goal ${Drive.fmt(goal)}</text>` : "";
     const dots = series.map((p, i) => i === 0 ? "" :
-      `<circle cx="${x(i)}" cy="${y(p.total)}" r="5" fill="#fff" stroke="#103327" stroke-width="2.5"><title>${Drive.fmtDate(p.date)}: ${Drive.fmt(p.total)} total (+${Drive.fmt(p.add)})</title></circle>
+      `<circle cx="${x(i)}" cy="${y(p.total)}" r="5" fill="#fff" stroke="#103327" stroke-width="2.5"><title>${Drive.fmtDate(p.date)}: ${Drive.fmt(p.total)} total (${signed(p.add)})</title></circle>
        <text x="${x(i)}" y="${H - 10}" text-anchor="middle">${Drive.fmtDate(p.date)}</text>`).join("");
     $("chart").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Running total after each meeting">
       ${grid}${goalLine}
@@ -206,7 +232,7 @@
       <text x="${x(0)}" y="${H - 10}" text-anchor="middle">Start</text>
       ${dots}
     </svg>`;
-    $("meeting-list").innerHTML = pts.slice().reverse().map(p => `<li>${Drive.fmtDate(p.date, { month: "long", day: "numeric" })}: <b>+${Drive.fmt(p.add)}</b></li>`).join("");
+    $("meeting-list").innerHTML = pts.slice().reverse().map(p => `<li>${Drive.fmtDate(p.date, { month: "long", day: "numeric" })}: <b>${signed(p.add)}</b></li>`).join("");
   }
 
   function niceStep(raw) {

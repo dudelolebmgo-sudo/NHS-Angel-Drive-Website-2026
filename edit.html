@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Gloock&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261028c">
+  <link rel="stylesheet" href="styles.css?v=20261102a">
   <style>
     .ed-head { background: var(--pine); color: var(--snow); padding: 28px 0; }
     .ed-head .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
@@ -128,7 +128,7 @@
 
     <section class="panel" aria-labelledby="meet-h">
       <h2 id="meet-h">1. Enter this meeting's donations</h2>
-      <p class="hint">Type how many items each class brought in since the last meeting. Leave a class blank if it brought nothing. To fix a past meeting, choose it from the list.</p>
+      <p class="hint">Type how many items each class brought in at this meeting. To fix a number, type the class's correct total in the Total column instead. To change an earlier meeting, choose it from the list.</p>
       <div class="row">
         <label class="f">Meeting<select id="meeting-pick"></select></label>
         <label class="f">Date<input type="date" id="meeting-date"></label>
@@ -136,7 +136,7 @@
       </div>
       <div class="table-scroll" style="margin-top:18px">
         <table>
-          <thead><tr><th>Class</th><th class="num before">Before</th><th class="num">This meeting</th><th class="num">New total</th></tr></thead>
+          <thead><tr><th>Class</th><th class="num before">Before</th><th class="num">This meeting</th><th class="num">Total</th></tr></thead>
           <tbody id="entry-body"></tbody>
           <tfoot><tr><td>All classes</td><td class="num before" id="sum-before"></td><td class="num" id="sum-add"></td><td class="num" id="sum-after"></td></tr></tfoot>
         </table>
@@ -184,7 +184,7 @@
   </div>
   </div>
 
-  <script src="common.js?v=20261028c"></script>
-  <script src="edit.js?v=20261028c"></script>
+  <script src="common.js?v=20261102a"></script>
+  <script src="edit.js?v=20261102a"></script>
 </body>
 </html>

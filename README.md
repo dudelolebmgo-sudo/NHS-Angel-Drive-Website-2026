@@ -1,6 +1,6 @@
 # Christmas Angel Drive 2026
 
-This is the website our National Honor Society organization in CIC Valencia uses to keep score during the Christmas Angel Drive. Every class from Nursery to Grade 5 collects items, and this page shows how many each class has brought in so far, who's in the lead, and how close we are to our goal.
+This is the website our National Honor Society chapter uses to keep score during the Christmas Angel Drive. Every class from Nursery to Grade 5 collects items, and this page shows how many each class has brought in so far, who's in the lead, and how close we are to our goal.
 
 **See it here:** https://dudelolebmgo-sudo.github.io/NHS-Angel-Drive-Website-2026/
 
@@ -27,15 +27,16 @@ After that, you only need your PIN on that device.
 ### Every Thursday
 
 1. Open the editor and type your PIN.
-2. The date fills in with the most recent Thursday. Double-check it.
-3. Type how many items each class brought in **since the last meeting** (not their running total). Leave a box empty if a class brought nothing. Pressing Enter jumps to the next class.
+2. The date fills in with the most recent Thursday. If you already saved numbers for that day, they open so you can keep adding to them.
+3. In **This meeting**, type how many items each class brought in. Leave a box empty if a class brought nothing. Pressing Enter jumps to the next class.
 4. Click **Publish to site**.
 
-The public page catches up in a minute or two. If it looks like it didn't update, give it a few more minutes and refresh.
+Refresh the public page and the new numbers usually show up within a minute. On a busy school network it can take a couple of minutes, because GitHub limits how often one network can check for updates.
 
 ### Fixing things
 
-- **Typed a wrong number?** Choose that meeting from the **Meeting** list, fix it, and publish again.
+- **A class's total is wrong?** Type the correct number in its **Total** box and publish. The editor works out the difference for you.
+- **Need to change an earlier meeting?** Choose it from the **Meeting** list, fix it, and publish again.
 - **A grade has a different number of sections?** Use the **Sections** dropdown next to that grade in the Classes part of the editor.
 - **Forgot your PIN?** Click **Forgot PIN?** on the lock screen, paste your token again, and choose a new PIN.
 - **Token expired or lost?** Make a new one the same way as above, then use **Forgot PIN?** to set it up again.
