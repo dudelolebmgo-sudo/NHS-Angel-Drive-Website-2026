@@ -22,11 +22,6 @@
       "section": "1"
     },
     {
-      "id": "k-2",
-      "grade": "Kinder",
-      "section": "2"
-    },
-    {
       "id": "g1-1",
       "grade": "1",
       "section": "1"
@@ -77,5 +72,12 @@
       "section": "2"
     }
   ],
-  "meetings": []
+  "meetings": [
+    {
+      "date": "2026-10-29",
+      "added": {
+        "k-1": 8
+      }
+    }
+  ]
 }
