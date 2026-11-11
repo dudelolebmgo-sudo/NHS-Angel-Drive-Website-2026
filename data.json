@@ -2,7 +2,7 @@
   "driveName": "Christmas Angel Drive",
   "organization": "National Honor Society",
   "year": 2026,
-  "goal": 1500,
+  "goal": 375,
   "endDate": "2026-12-03",
   "sample": false,
   "classes": [
@@ -91,5 +91,5 @@
       }
     }
   ],
-  "updatedAt": "2026-11-10T22:54:47.547Z"
+  "updatedAt": "2026-11-11T13:54:50.273Z"
 }
